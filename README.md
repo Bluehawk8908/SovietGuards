@@ -40,3 +40,4 @@ would never have come to fruition. I owe them, and the geniuses behind the [Unit
 1.3.1 - Minor Typo in Config
 
 ![Motor-Rifle Section dismounting from a BMP-1](https://i.imgur.com/b3hF4Q3.jpeg)
+Disclaimer: The "CA" lettering on the infantry shoulder straps is via a separate mod: "Soviet infantry tweaks and variants" available on the GHPC subreddit.
