@@ -8,7 +8,7 @@
 This mod replaces the tactical symbols on Soviet ground vehicles, which appear on the turret cheeks, spotlight cover or stowage boxes, with the gold and red Guard badge, which served as livery for units with 'Guard' status, not only for parades and inspections
 but also on manoeuvres. One could imagine if war broke out suddenly, or under the guise of a training exercise, the combatants may not have time to paint over their emblems - so they must fight in full regalia, like their fathers and grandfathers before them!
 
-The effected vehicles are the BMP-1(P), BMP-2, BRDM-2 BTR-60PB, BTR-70, T-62, all T-64 variants, and the T-80. Changes should appear in all missions, including use of the customizer to add Soviet vics where they didn't originally appear. Changes will also appear in the main menu dioramas.
+The effected vehicles are the BMP-1(P), BMP-2, BRDM-2, BTR-60PB, BTR-70, T-62, all T-64 variants, and the T-80. Changes should appear in all missions, including use of the customizer to add Soviet vics where they didn't originally appear. Changes will also appear in the main menu dioramas.
 
 This mod also adds the actual guard badge to Soviet infantry, worn on the right breast of the tunic.
 
