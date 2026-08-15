@@ -1,9 +1,9 @@
 
 ## Gunner Heat PC Soviet Guards Regiment Mod
 
-### Version 1.3.1, 9th April 2026  
+### Version 1.4, 15th August 2026  
 
-![T-80B's on the march](https://i.imgur.com/tTsuTcz.jpeg)
+![T-80B's on the march](https://i.imgur.com/lRgqQCV.jpeg)
  
 This mod replaces the tactical symbols on Soviet ground vehicles, which appear on the turret cheeks, spotlight cover or stowage boxes, with the gold and red Guard badge, which served as livery for units with 'Guard' status, not only for parades and inspections
 but also on manoeuvres. One could imagine if war broke out suddenly, or under the guise of a training exercise, the combatants may not have time to paint over their emblems - so they must fight in full regalia, like their fathers and grandfathers before them!
@@ -28,16 +28,15 @@ This mod does not copy or incorporate any material wholesale from other modders,
 would never have come to fruition. I owe them, and the geniuses behind the [UnityExplorer](https://github.com/sinai-dev/UnityExplorer) project a debt of gratitude.
 
 ***Known Issues***  
-- The emblems don't disappear or darken after a vehicle has blown up and burnt down to a rusty hulk.  
 - The badges on infantry have no proper specularity, as they share the dull paint material with the vehicle decals.  
-- There may be compatibility problems with other mods that heavily modify the components of Soviet vehicles. (Pact Increased Lethality seems to work fine)  
 
 **Changelog**  
 1.0 - Base release  
 1.1 - T64B1 added  
 1.2 - T64R and BRDM2 added; configuration options added  
 1.3 - Refactored code, no significant change to user experience  
-1.3.1 - Minor Typo in Config
+1.3.1 - Minor Typo in Config  
+1.4 - Asset replacement and burning decal functionality added
 
-![Motor-Rifle Section dismounting from a BMP-1](https://i.imgur.com/b3hF4Q3.jpeg)
+![Motor-Rifle Section dismounting from a BMP-1](https://i.imgur.com/t5d6kSD.jpeg)
 Disclaimer: The "CA" lettering on the infantry shoulder straps is via a separate mod: "Soviet infantry tweaks and variants" available on the GHPC subreddit.
