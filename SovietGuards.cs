@@ -93,6 +93,7 @@ namespace SovietGuards{
                 badge.LoadImage(data, true);
                 byte[] data2 = File.ReadAllBytes("Mods/SovietGuards/burnt.png");
                 scorch.LoadImage(data2, true);
+
                 guards_mat.SetTexture("_colour", badge);
                 guards_mat.SetTexture("_burnttexture", scorch);
                 guards_mat.SetFloat("_Cutoff", 0.84f);
@@ -243,6 +244,7 @@ namespace SovietGuards{
                         MeshRenderer markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat; //replaces tactical markings with Guard badge                       
                         markings_mr.material.SetTextureScale("_colour", newSize); //new material needs adjusting to fit mesh
+                        markings_mr.material.SetTextureScale("_burnttexture", newSize);
                         if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         if (hide_nets.Value)
                         {
@@ -267,11 +269,13 @@ namespace SovietGuards{
                             MeshRenderer markings1_mr = markings1.GetComponent<MeshRenderer>();
                             markings1_mr.material = guards_mat;
                             markings1_mr.material.SetTextureScale("_colour", newSize);
+                            markings1_mr.material.SetTextureScale("_burnttexture", newSize);
                         }
                         if (markings2 != null) { 
                             MeshRenderer markings2_mr = markings2.GetComponent<MeshRenderer>();
                             markings2_mr.material = guards_mat;
                             markings2_mr.material.SetTextureScale("_colour", newSize);
+                            markings2_mr.material.SetTextureScale("_burnttexture", newSize);
                         }
                         if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
@@ -282,6 +286,7 @@ namespace SovietGuards{
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
                         markings_mr.material.SetTextureScale("_colour", newSize);
+                        markings_mr.material.SetTextureScale("_burnttexture", newSize);
                         if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
@@ -292,6 +297,7 @@ namespace SovietGuards{
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
                         markings_mr.material.SetTextureScale("_colour", newSize);
+                        markings_mr.material.SetTextureScale("_burnttexture", newSize);
                         if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         if (hide_nets.Value)
                         {
@@ -306,6 +312,7 @@ namespace SovietGuards{
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
                         markings_mr.material.SetTextureScale("_colour", newSize);
+                        markings_mr.material.SetTextureScale("_burnttexture", newSize);
                         if (hide_nets.Value)
                         {
                             GameObject net = unit.transform.Find("BMP2_rig/HULL/TURRET/bmp2 net turret").gameObject;
@@ -321,6 +328,7 @@ namespace SovietGuards{
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
                         markings_mr.material.SetTextureScale("_colour", new Vector2(1.05f, 1.05f)); //overwriting the DDR rondel requires a unique rescale
+                        markings_mr.material.SetTextureScale("_burnttexture", new Vector2(1.05f, 1.05f));
                         if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
@@ -331,7 +339,12 @@ namespace SovietGuards{
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
                         markings_mr.material.SetTextureScale("_colour", new Vector2(1.35f, 1.35f));
+                        markings_mr.material.SetTextureScale("_burnttexture", new Vector2(1.35f, 1.35f));
                         markings_mr.material.SetTextureOffset("_colour", new Vector2(-0.1f, -0.16f));
+                        markings_mr.material.SetTextureOffset("_burnttexture", new Vector2(-0.1f, -0.16f));
+                        RendererMaterial markings_rm = new RendererMaterial();
+                        markings_rm.Renderer = markings.GetComponent<MeshRenderer>();
+                        unit.GetComponent<FlammablesManager>()._scorchRendererMaterials.Add(markings_rm);
                         if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
@@ -375,7 +388,8 @@ namespace SovietGuards{
                         tac_luna.transform.localPosition = new Vector3(0f, 0f, 0f);
                         MeshRenderer tac_luna_mr = tac_luna.GetComponent<MeshRenderer>();
                         tac_luna_mr.material = guards_mat;
-                        tac_luna_mr.material.SetTextureScale("_colour", newSize); 
+                        tac_luna_mr.material.SetTextureScale("_colour", newSize);
+                        tac_luna_mr.material.SetTextureScale("_burnttexture", newSize);
                         unit.transform.Find("---T64A_MESH---").gameObject.SetActive(false);
                         if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
