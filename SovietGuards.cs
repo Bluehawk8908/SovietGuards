@@ -1,11 +1,12 @@
 using System.Collections;
+using System.IO;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using MelonLoader;
-using GHPC;
-using GHPC.Mission;
+using GHPC.Effects;
 using GHPC.State;
 using GHPC.Vehicle;
+using GHPC.Infantry;
+using GHPC.Utility;
 
 
 namespace SovietGuards{
@@ -17,7 +18,6 @@ namespace SovietGuards{
             enabled = false;
         }
     }
-    
     public class SovietGuardsClass : MelonMod
     {
         public static GameObject gameManager;
@@ -79,33 +79,34 @@ namespace SovietGuards{
             filter.mesh.RecalculateNormals();
             render.material = mat;
         }
-        
-        public void MenuProps()
-        {
-            //Since there is no unitspawner on the main menu scenes, we need to load in our dummy BMP the hard way
-            if (guards_mat == null) 
-            {
-                UnitPrefabLookupScriptable lookup = Resources.FindObjectsOfTypeAll<UnitPrefabLookupScriptable>()[0];
-                UnitPrefabLookupScriptable.UnitPrefabMetadata[] all_prefabs = lookup.AllUnits;
 
-                foreach (var unit in all_prefabs)
-                {
-                    if (unit.FriendlyName != "BMP-2") { continue; }
-                    unit.PrefabReference.LoadAssetAsync<GameObject>().WaitForCompletion();
-                    if (!mute_logging.Value) { MelonLogger.Msg("BMP-2 prefab loaded"); }
-                }
-            
-                var list = Resources.FindObjectsOfTypeAll<Vehicle>();
-                foreach (var vic in list)
-                {
-                    if (vic.name == "BMP2 Soviet")
-                    {
-                        MeshRenderer gvards_mr = vic.transform.Find("BMP2_markings_sa/GVARDS").gameObject.GetComponent<MeshRenderer>();
-                        guards_mat = gvards_mr.material;
-                        if (guards_mat == null) { MelonLogger.Msg("Can't retrieve guards material from prefab"); }
-                        else { if (!mute_logging.Value) { MelonLogger.Msg("Got material from prefab"); } }                    
-                    }
-                }
+        public void FetchTex()
+        {
+            MelonLogger.Msg("Fetching textures");
+            guards_mat = new Material(Shader.Find("ghpc_roundel"));
+            guards_mat.shaderKeywords = new string[] { "_ALPHATEST_ON" };
+            Texture2D badge = new Texture2D(128, 128, TextureFormat.DXT5, true, false);
+            Texture2D scorch = new Texture2D(1024, 1024, TextureFormat.DXT5, true, false);
+            try
+            {
+                byte[] data = File.ReadAllBytes("Mods/SovietGuards/gvardiya.png");
+                badge.LoadImage(data, true);
+                byte[] data2 = File.ReadAllBytes("Mods/SovietGuards/burnt.png");
+                scorch.LoadImage(data2, true);
+                guards_mat.SetTexture("_colour", badge);
+                guards_mat.SetTexture("_burnttexture", scorch);
+                guards_mat.SetFloat("_Cutoff", 0.84f);
+                guards_mat.SetFloat("_colourfade", 0.195f);
+                guards_mat.SetFloat("_SrcBlend", 1f);
+                guards_mat.SetFloat("_Smoothness", 0.399f);
+            }
+            catch (FileNotFoundException e) { MelonLogger.Error(e); }
+        }
+        public void MenuProps()
+        {            
+            if (guards_mat == null || guards_mat.GetTexture("_colour") == null) 
+            {
+                FetchTex();
             }
             //since the prop vehicles in the scene have no 'Vehicle' component, and the BTR70 is not even tagged 'vehicle',
             //we fetch all the gameobjects in a big-ass array and filter them by their names
@@ -123,13 +124,13 @@ namespace SovietGuards{
                         {
                             MeshRenderer markings1_mr = tac1.GetComponent<MeshRenderer>();
                             markings1_mr.material = guards_mat;
-                            markings1_mr.material.mainTextureScale = newSize;
+                            markings1_mr.material.SetTextureScale("_colour", newSize);
                         }
                         if (tac2 != null)
                         {
                             MeshRenderer markings2_mr = tac2.GetComponent<MeshRenderer>();
                             markings2_mr.material = guards_mat;
-                            markings2_mr.material.mainTextureScale = newSize;
+                            markings2_mr.material.SetTextureScale("_colour", newSize);
                         }
                         if (!mute_logging.Value) { MelonLogger.Msg("T64 prop inducted into the Guards!"); }
                         break;
@@ -138,7 +139,7 @@ namespace SovietGuards{
                         Transform markings = prop.transform.Find("---T62_rig---/HULL/TURRET/T62_markings/tac_markings");
                         MeshRenderer markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;                      
-                        markings_mr.material.mainTextureScale = newSize;
+                        markings_mr.material.SetTextureScale("_colour", newSize);
                         if (hide_nets.Value)
                         {
                             GameObject net = prop.transform.Find("---T62_rig---/HULL/TURRET/T62 turret net").gameObject;
@@ -151,14 +152,15 @@ namespace SovietGuards{
                         markings = prop.transform.Find("T80B_rig/HULL/TURRET/searchlight/searchlight cover/tac marker");
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
-                        markings_mr.material.mainTextureScale = newSize;
+                        markings_mr.material.SetTextureScale("_colour", newSize);
                         if (!mute_logging.Value) { MelonLogger.Msg("T80 prop inducted into the Guards!"); }
                         break;
                     case "BMP2 S":
-                        if (!BMP2.Value) { continue; }
-                        prop.transform.Find("BMP2_markings_sa/GVARDS").gameObject.SetActive(true);
-                        prop.transform.Find("BMP2_rig/HULL/TURRET/tactical marker").gameObject.SetActive(false);
-                        prop.transform.Find("BMP2_rig/HULL/TURRET/GVARDS").localScale = new Vector3(1.005f, 1f, 1f);
+                        if (!BMP2.Value) { continue; }                        
+                        markings = prop.transform.Find("BMP2_rig/HULL/TURRET/tactical marker");
+                        markings_mr = markings.GetComponent<MeshRenderer>();
+                        markings_mr.material = guards_mat;
+                        markings_mr.material.SetTextureScale("_colour", newSize);
                         if (hide_nets.Value)
                         {
                             GameObject net = prop.transform.Find("BMP2_rig/HULL/TURRET/bmp2 net turret").gameObject;
@@ -171,7 +173,7 @@ namespace SovietGuards{
                         markings = prop.transform.Find("BMP1_rig/HULL/TURRET/tac marker");
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
-                        markings_mr.material.mainTextureScale = newSize;
+                        markings_mr.material.SetTextureScale("_colour", newSize);
                         if (hide_nets.Value)
                         {
                             GameObject net = prop.transform.Find("BMP1_rig/HULL/TURRET/bmp1 net turret").gameObject;
@@ -188,7 +190,7 @@ namespace SovietGuards{
                         NewQuad(guard_left, guards_mat);
                         guard_left.transform.localScale = new Vector3(14f, 14f, 14f);
                         guard_left.transform.localPosition += new Vector3(-56.55f, 5.0f, -14.0f);
-                        guard_left.transform.rotation = turret.transform.rotation * Quaternion.Euler(new Vector3(309.0f, 70.0f, 5.1f));                        
+                        guard_left.transform.localRotation = Quaternion.Euler(new Vector3(309.0f, 70.0f, 5.1f));                        
 
                         GameObject guard_right = new GameObject("Guards_right");
                         guard_right.transform.parent = turret.transform;                        
@@ -196,16 +198,16 @@ namespace SovietGuards{
                         NewQuad(guard_right, guards_mat);
                         guard_right.transform.localScale = new Vector3(14f, 14f, 14f);
                         guard_right.transform.localPosition += new Vector3(57.55f, 5.0f, -14.0f);
-                        guard_right.transform.rotation = turret.transform.rotation * Quaternion.Euler(new Vector3(309.0f, -90.0f, 5.1f));                        
+                        guard_right.transform.localRotation = Quaternion.Euler(new Vector3(309.0f, -90.0f, 5.1f));                        
 
                         if (!mute_logging.Value) { MelonLogger.Msg("BTR70 prop inducted into the Guards!"); }
                         break;
                 }
             }
         }
-        
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
+            
             if (sceneName == "MainMenu2_Scene" || sceneName == "t64_menu" || sceneName == "MainMenu2-1_Scene")
             {
                 menuProps = true;
@@ -218,59 +220,16 @@ namespace SovietGuards{
 
             StateController.RunOrDefer(GameState.GameReady, new GameStateEventHandler(Conversion), GameStatePriority.Medium);
         }
-       
         private IEnumerator Conversion(GameState _)
         {
             if (menuProps == true) { yield break; }                       
             Vehicle[] list = GameObject.FindObjectsByType<Vehicle>(FindObjectsSortMode.None);
 
-            
-            foreach (var unit in list)
-            {
-                GameObject unit_go = unit.gameObject;
-                if (unit_go == null) { continue; }
-                if (unit_go.GetComponent<AlreadyConverted>() != null) { continue; }
-                if (unit.UniqueName != "BMP2_SA") { continue; }
-
-                GameObject gvards = unit_go.transform.Find("BMP2_markings_sa/GVARDS").gameObject;
-                if (gvards != null)
-                {
-                    if (guards_mat == null) { guards_mat = gvards.GetComponent<MeshRenderer>().material; } //ref for Guard badge texture
-                    gvards.transform.localScale = new Vector3(1.005f, 1f, 1f); //slight resize prevents clipping
-                    if (BMP2.Value) 
-                    { 
-                        gvards.SetActive(true);
-                        unit.transform.Find("BMP2_rig/HULL/TURRET/tactical marker").gameObject.SetActive(false);
-                    } //switches on BMP2's Guard badge
-                    
-                    if (!mute_logging.Value) { MelonLogger.Msg("Found BMP-2 named " + unit + " and its guard badge: " + guards_mat); }
-                    
-                    if (hide_nets.Value) { 
-                        GameObject net = unit.transform.Find("BMP2_rig/HULL/TURRET/bmp2 net turret").gameObject;
-                        if (net != null) { net.SetActive(false); }
-                    }                    
-                    unit_go.AddComponent<AlreadyConverted>();
-                }
+            if (guards_mat == null || guards_mat.GetTexture("_colour") == null)
+            {                
+                FetchTex();
             }
 
-            if (guards_mat == null) { //if there's no BMP-2 in the scene, we create one and take its Guard badge
-                var prefabLookups = Object.FindAnyObjectByType<UnitSpawner>().PrefabLookup;
-                AssetReference prefab = prefabLookups.GetPrefab("BMP2_SA");
-                var dummy_bmp = Addressables.LoadAssetAsync<GameObject>(prefab).WaitForCompletion();
-                MelonLogger.Msg(dummy_bmp.name + "vehicle object");
-
-                if (dummy_bmp == null) {                     
-                    if (!mute_logging.Value) { MelonLogger.Msg("Could not load a BMP-2 prefab!"); }
-                }
-                else {
-                    MelonLogger.Msg(dummy_bmp);                    
-                    MeshRenderer gvards_mr = dummy_bmp.transform.Find("BMP2_markings_sa/GVARDS").gameObject.GetComponent<MeshRenderer>();
-                    guards_mat = gvards_mr.material;
-                    if (guards_mat == null) { MelonLogger.Msg("Can't retrieve guards material from dummy"); }
-                    else { if (!mute_logging.Value) { MelonLogger.Msg("Got " + guards_mat + "from dummy"); } } 
-                }
-            }
-                
             foreach (var unit in list)
             {
                 GameObject unit_go = unit.gameObject;
@@ -283,8 +242,8 @@ namespace SovietGuards{
                         Transform markings = unit_go.transform.Find("---T62_rig---/HULL/TURRET/T62_markings/tac_markings");
                         MeshRenderer markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat; //replaces tactical markings with Guard badge                       
-                        markings_mr.material.mainTextureScale = newSize; //new material needs adjusting to fit mesh
-                        if (!mute_logging.Value) { MelonLogger.Msg("T-62 named " + unit + " inducted into the Guards!"); }
+                        markings_mr.material.SetTextureScale("_colour", newSize); //new material needs adjusting to fit mesh
+                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         if (hide_nets.Value)
                         {
                             GameObject net = unit.transform.Find("---T62_rig---/HULL/TURRET/T62 turret net").gameObject;
@@ -307,14 +266,14 @@ namespace SovietGuards{
                         if (markings1 != null) { 
                             MeshRenderer markings1_mr = markings1.GetComponent<MeshRenderer>();
                             markings1_mr.material = guards_mat;
-                            markings1_mr.material.mainTextureScale = newSize;
+                            markings1_mr.material.SetTextureScale("_colour", newSize);
                         }
                         if (markings2 != null) { 
                             MeshRenderer markings2_mr = markings2.GetComponent<MeshRenderer>();
                             markings2_mr.material = guards_mat;
-                            markings2_mr.material.mainTextureScale = newSize;
+                            markings2_mr.material.SetTextureScale("_colour", newSize);
                         }
-                        if (!mute_logging.Value) { MelonLogger.Msg("T-64 named " + unit + " inducted into the Guards!"); }
+                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("T80B"):
@@ -322,8 +281,8 @@ namespace SovietGuards{
                         markings = unit_go.transform.Find("T80B_rig/HULL/TURRET/searchlight/searchlight cover/tac marker");
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
-                        markings_mr.material.mainTextureScale = newSize;
-                        if (!mute_logging.Value) { MelonLogger.Msg("T-80 named " + unit + " inducted into the Guards!"); }
+                        markings_mr.material.SetTextureScale("_colour", newSize);
+                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("BMP1_SA"):
@@ -332,13 +291,27 @@ namespace SovietGuards{
                         markings = unit_go.transform.Find("BMP1_rig/HULL/TURRET/tac marker");
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
-                        markings_mr.material.mainTextureScale = newSize;
-                        if (!mute_logging.Value) { MelonLogger.Msg("BMP-1P named " + unit + "inducted into the Guards!"); }
+                        markings_mr.material.SetTextureScale("_colour", newSize);
+                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         if (hide_nets.Value)
                         {
                             GameObject net = unit.transform.Find("BMP1_rig/HULL/TURRET/bmp1 net turret").gameObject;
                             if (net != null) { net.SetActive(false); }
                         }
+                        unit_go.AddComponent<AlreadyConverted>();
+                        break;
+                    case ("BMP2_SA"):
+                        if (!BMP2.Value) { continue; }
+                        markings = unit_go.transform.Find("BMP2_rig/HULL/TURRET/tactical marker");
+                        markings_mr = markings.GetComponent<MeshRenderer>();
+                        markings_mr.material = guards_mat;
+                        markings_mr.material.SetTextureScale("_colour", newSize);
+                        if (hide_nets.Value)
+                        {
+                            GameObject net = unit.transform.Find("BMP2_rig/HULL/TURRET/bmp2 net turret").gameObject;
+                            if (net != null) { net.SetActive(false); }
+                        }
+                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("BTR60PB_SA"):                    
@@ -347,8 +320,8 @@ namespace SovietGuards{
                         markings = unit_go.transform.Find("btr60_rig/HULL/TURRET/Object266");
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
-                        markings_mr.material.mainTextureScale = new Vector2(1.05f, 1.05f); //overwriting the DDR rondel requires a unique rescale
-                        if (!mute_logging.Value) { MelonLogger.Msg("BTR-60 named " + unit + "inducted into the Guards!"); }
+                        markings_mr.material.SetTextureScale("_colour", new Vector2(1.05f, 1.05f)); //overwriting the DDR rondel requires a unique rescale
+                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("BRDM2_SA"):
@@ -357,9 +330,9 @@ namespace SovietGuards{
                         markings = unit_go.transform.Find("BRDM2_rig/HULL/TURRET/emblem");
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
-                        markings_mr.material.mainTextureScale = new Vector2(1.35f, 1.35f);
-                        markings_mr.material.mainTextureOffset = new Vector2(-0.1f, -0.16f);
-                        if (!mute_logging.Value) { MelonLogger.Msg("BRDM named " + unit + "inducted into the Guards!"); }
+                        markings_mr.material.SetTextureScale("_colour", new Vector2(1.35f, 1.35f));
+                        markings_mr.material.SetTextureOffset("_colour", new Vector2(-0.1f, -0.16f));
+                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("BTR70"): //BTR70 has no tactical symbols to overwrite, so we need to create new planes from scratch!                    
@@ -372,7 +345,9 @@ namespace SovietGuards{
                         NewQuad(guard_left, guards_mat);
                         guard_left.transform.localScale = new Vector3(14f, 14f, 14f);
                         guard_left.transform.localPosition += new Vector3(-56.55f, 5.0f, -14.0f);
-                        guard_left.transform.rotation = turret.transform.rotation * Quaternion.Euler(new Vector3(309.0f, 70.0f, 5.1f)); 
+                        guard_left.transform.localRotation = Quaternion.Euler(new Vector3(309.0f, 70.0f, 5.1f));
+                        RendererMaterial guard_left_rm = new RendererMaterial();
+                        guard_left_rm.Renderer = guard_left.GetComponent<MeshRenderer>();
 
                         GameObject guard_right = new GameObject("Guards_right");
                         guard_right.transform.parent = turret.transform;                        
@@ -380,9 +355,14 @@ namespace SovietGuards{
                         NewQuad(guard_right, guards_mat);
                         guard_right.transform.localScale = new Vector3(14f, 14f, 14f);
                         guard_right.transform.localPosition += new Vector3(57.55f, 5.0f, -14.0f);
-                        guard_right.transform.rotation = turret.transform.rotation * Quaternion.Euler(new Vector3(309.0f, -90.0f, 5.1f)); 
+                        guard_right.transform.localRotation = Quaternion.Euler(new Vector3(309.0f, -90.0f, 5.1f));
+                        RendererMaterial guard_right_rm = new RendererMaterial();
+                        guard_right_rm.Renderer = guard_right.GetComponent<MeshRenderer>();
 
-                        if (!mute_logging.Value) { MelonLogger.Msg("BTR-70 named " + unit + "inducted into the Guards!"); }
+                        unit.GetComponent<FlammablesManager>()._scorchRendererMaterials.Add(guard_left_rm);
+                        unit.GetComponent<FlammablesManager>()._scorchRendererMaterials.Add(guard_right_rm);
+
+                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("T64R"):
@@ -395,9 +375,9 @@ namespace SovietGuards{
                         tac_luna.transform.localPosition = new Vector3(0f, 0f, 0f);
                         MeshRenderer tac_luna_mr = tac_luna.GetComponent<MeshRenderer>();
                         tac_luna_mr.material = guards_mat;
-                        tac_luna_mr.material.mainTextureScale = newSize;
+                        tac_luna_mr.material.SetTextureScale("_colour", newSize); 
                         unit.transform.Find("---T64A_MESH---").gameObject.SetActive(false);
-                        if (!mute_logging.Value) { MelonLogger.Msg("T-64 named " + unit + "inducted into the Guards!"); }
+                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                 } 
@@ -405,7 +385,7 @@ namespace SovietGuards{
 
             //Now for the infantry
             if (!Infantry.Value) { yield break; }
-            Unit[] units = GameObject.FindObjectsByType<Unit>(FindObjectsSortMode.None);
+            InfantryUnit[] units = GameObject.FindObjectsByType<InfantryUnit>(FindObjectsSortMode.None);
             foreach (var unit in units)
             {
                 GameObject unit_go = unit.gameObject;
@@ -425,8 +405,8 @@ namespace SovietGuards{
                     NewQuad(guard, guards_mat);
                     guard.transform.localScale = new Vector3(0.023f, 0.023f, 0.023f);
                     guard.transform.localPosition += new Vector3(-0.03f, 0.13f, -0.07f);
-                    guard.transform.rotation = chest.transform.rotation * Quaternion.Euler(new Vector3(20f, -90f, 5f));
-                    if (!mute_logging.Value) { MelonLogger.Msg("Motostrelok inducted into the Guards!"); }
+                    guard.transform.localRotation = Quaternion.Euler(new Vector3(20f, -90f, 5f));
+                    if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
                     unit_go.AddComponent<AlreadyConverted>();
                 }
             }
