@@ -37,6 +37,7 @@ would never have come to fruition. I owe them, and the geniuses behind the [Unit
 1.3 - Refactored code, no significant change to user experience  
 1.3.1 - Minor Typo in Config  
 1.4 - Asset replacement and burning decal functionality added
+1.4.1 - T64A obr. 1979 added; config descriptions pruned; Ural-375Ds given the "SA" roundel of the GSFG
 
 ![Motor-Rifle Section dismounting from a BMP-1](https://i.imgur.com/t5d6kSD.jpeg)
 Disclaimer: The "CA" lettering on the infantry shoulder straps is via a separate mod: "Soviet infantry tweaks and variants" available on the GHPC subreddit.
