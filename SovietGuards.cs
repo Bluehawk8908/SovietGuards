@@ -1,7 +1,9 @@
 using System.Collections;
 using System.IO;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using MelonLoader;
+using GHPC.Mission;
 using GHPC.Effects;
 using GHPC.State;
 using GHPC.Vehicle;
@@ -22,6 +24,7 @@ namespace SovietGuards{
     {
         public static GameObject gameManager;
         public static Material guards_mat = null;
+        public static Material SA_rond = null;
         public static MelonPreferences_Entry<bool> hide_nets;
         public static MelonPreferences_Entry<bool> mute_logging;
         public static MelonPreferences_Entry<bool> BMP1s;
@@ -33,39 +36,35 @@ namespace SovietGuards{
         public static MelonPreferences_Entry<bool> BTR70;
         public static MelonPreferences_Entry<bool> BRDM;
         public static MelonPreferences_Entry<bool> Infantry;
-
-        private bool menuProps = false;
+        public static MelonPreferences_Entry<bool> Trucks;
+        
         Vector2 newSize = new Vector2(8, 4);
 
         public override void OnInitializeMelon()
         {
             MelonPreferences_Category cfg = MelonPreferences.CreateCategory("SovietGuards");
             hide_nets = cfg.CreateEntry<bool>("Remove turret camo nets", false);
-            hide_nets.Description = "Removes camo nets that might obscure the Guards emblem";
+            hide_nets.Comment = "Only applies to nets that obscure the Guards emblem";
 
             mute_logging = cfg.CreateEntry<bool>("Mute console logging", false);
-            mute_logging.Description = "Silences the mod's messages in the MelonLoader console";
+            mute_logging.Comment = "Silences the mod's messages in the MelonLoader console";
 
-            BMP1s = cfg.CreateEntry<bool>("Modify BMP1s", true);
-            BMP1s.Description = "Set true to modify BMP1s, false to exclude them";
-            BMP2 = cfg.CreateEntry<bool>("Modify BMP2s", true);
-            BMP2.Description = "Set true to modify BMP2s, false to exclude them";
-            T62 = cfg.CreateEntry<bool>("Modify T62s", true);
-            T62.Description = "Set true to modify T62s, false to exclude them";
-            T64s = cfg.CreateEntry<bool>("Modify T64s", true);
-            T64s.Description = "Set true to modify T64s, false to exclude them";
-            T80 = cfg.CreateEntry<bool>("Modify T80s", true);
-            T80.Description = "Set true to modify T80s, false to exclude them";
-            BTR60 = cfg.CreateEntry<bool>("Modify BTR60s", true);
-            BTR60.Description = "Set true to modify BTR60s, false to exclude them";
-            BTR70 = cfg.CreateEntry<bool>("Modify BTR70s", true);
-            BTR70.Description = "Set true to modify BTR70s, false to exclude them";
-            BRDM = cfg.CreateEntry<bool>("Modify BRDMs", true);
-            BRDM.Description = "Set true to modify BRDMs, false to exclude them";
-            Infantry = cfg.CreateEntry<bool>("Modify Infantry", true);
-            Infantry.Description = "Set true to modify infantrymen, false to exclude them";            
-        }        
-        
+            BMP1s = cfg.CreateEntry<bool>("Modify BMP1s", true);            
+            BMP2 = cfg.CreateEntry<bool>("Modify BMP2s", true);            
+            T62 = cfg.CreateEntry<bool>("Modify T62s", true);            
+            T64s = cfg.CreateEntry<bool>("Modify T64s", true);            
+            T80 = cfg.CreateEntry<bool>("Modify T80s", true);           
+            BTR60 = cfg.CreateEntry<bool>("Modify BTR60s", true);            
+            BTR70 = cfg.CreateEntry<bool>("Modify BTR70s", true);           
+            BRDM = cfg.CreateEntry<bool>("Modify BRDMs", true);            
+            Infantry = cfg.CreateEntry<bool>("Modify Infantry", true);            
+            Trucks = cfg.CreateEntry<bool>("Modify URAL-375Ds", true);
+        }
+        public void Log(string text)
+        {
+            if (!mute_logging.Value) { MelonLogger.Msg(text); }
+        }
+
         public void NewQuad(GameObject go, Material mat)
         {
             MeshFilter filter = go.AddComponent<MeshFilter>();
@@ -81,8 +80,7 @@ namespace SovietGuards{
         }
 
         public void FetchTex()
-        {
-            MelonLogger.Msg("Fetching textures");
+        {            
             guards_mat = new Material(Shader.Find("ghpc_roundel"));
             guards_mat.shaderKeywords = new string[] { "_ALPHATEST_ON" };
             Texture2D badge = new Texture2D(128, 128, TextureFormat.DXT5, true, false);
@@ -103,12 +101,27 @@ namespace SovietGuards{
             }
             catch (FileNotFoundException e) { MelonLogger.Error(e); }
         }
-        public void MenuProps()
+        public void MenuProps(string sceneName)
         {            
             if (guards_mat == null || guards_mat.GetTexture("_colour") == null) 
             {
-                FetchTex();
+                FetchTex();                
             }
+            
+            if (SA_rond == null) {                
+                UnitPrefabLookupScriptable lookup = Resources.FindObjectsOfTypeAll<UnitPrefabLookupScriptable>()[0];
+                UnitPrefabLookupScriptable.UnitPrefabMetadata[] all_prefabs = lookup.AllUnits;
+                
+                foreach (var unit in all_prefabs)
+                {                    
+                    if (unit.FriendlyName != "UAZ-469") { continue; }                    
+                    GameObject dummy = unit.PrefabReference.LoadAssetAsync<GameObject>().WaitForCompletion();                    
+                    SA_rond = dummy.transform.Find("UAZ469_up_rig/lp_pillar004").GetComponent<SkinnedMeshRenderer>().materials[2];                    
+                    break;
+                }
+            }
+            if (sceneName == "MainMenu2_Scene") { return; } //this scene has no Soviet vehicles
+
             //since the prop vehicles in the scene have no 'Vehicle' component, and the BTR70 is not even tagged 'vehicle',
             //we fetch all the gameobjects in a big-ass array and filter them by their names
             GameObject[] props = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
@@ -133,7 +146,7 @@ namespace SovietGuards{
                             markings2_mr.material = guards_mat;
                             markings2_mr.material.SetTextureScale("_colour", newSize);
                         }
-                        if (!mute_logging.Value) { MelonLogger.Msg("T64 prop inducted into the Guards!"); }
+                        Log("T64 prop inducted into the Guards!");
                         break;
                     case "T62 St":
                         if (!T62.Value) { continue; }
@@ -146,7 +159,7 @@ namespace SovietGuards{
                             GameObject net = prop.transform.Find("---T62_rig---/HULL/TURRET/T62 turret net").gameObject;
                             if (net != null) { net.SetActive(false); }
                         }
-                        if (!mute_logging.Value) { MelonLogger.Msg("T62 prop inducted into the Guards!"); }
+                        Log("T62 prop inducted into the Guards!");
                         break;
                     case "T80B S":
                         if (!T80.Value) { continue; }
@@ -154,7 +167,7 @@ namespace SovietGuards{
                         markings_mr = markings.GetComponent<MeshRenderer>();
                         markings_mr.material = guards_mat;
                         markings_mr.material.SetTextureScale("_colour", newSize);
-                        if (!mute_logging.Value) { MelonLogger.Msg("T80 prop inducted into the Guards!"); }
+                        Log("T80 prop inducted into the Guards!");
                         break;
                     case "BMP2 S":
                         if (!BMP2.Value) { continue; }                        
@@ -167,7 +180,7 @@ namespace SovietGuards{
                             GameObject net = prop.transform.Find("BMP2_rig/HULL/TURRET/bmp2 net turret").gameObject;
                             if (net != null) { net.SetActive(false); }
                         }
-                        if (!mute_logging.Value) { MelonLogger.Msg("BMP2 prop inducted into the Guards!"); }
+                        Log("BMP2 prop inducted into the Guards!");
                         break;
                     case "BMP1P ":
                         if (!BMP1s.Value) { continue; }
@@ -180,7 +193,7 @@ namespace SovietGuards{
                             GameObject net = prop.transform.Find("BMP1_rig/HULL/TURRET/bmp1 net turret").gameObject;
                             if (net != null) { net.SetActive(false); }
                         }
-                        if (!mute_logging.Value) { MelonLogger.Msg("BMP1P prop inducted into the Guards!"); }
+                        Log("BMP1P prop inducted into the Guards!");
                         break;
                     case "BTR70 ":
                         if (!BTR70.Value) { continue; }
@@ -201,7 +214,27 @@ namespace SovietGuards{
                         guard_right.transform.localPosition += new Vector3(57.55f, 5.0f, -14.0f);
                         guard_right.transform.localRotation = Quaternion.Euler(new Vector3(309.0f, -90.0f, 5.1f));                        
 
-                        if (!mute_logging.Value) { MelonLogger.Msg("BTR70 prop inducted into the Guards!"); }
+                        Log("BTR70 prop inducted into the Guards!");
+                        break;
+                    case "Ural S":
+                        if (!Trucks.Value) { continue; }                        
+                        GameObject cabin = prop.transform.Find("ural375D_rig120921/lp_cabin_rear002").gameObject;
+                        GameObject SA_left = new GameObject("SA_driverside");
+                        SA_left.transform.parent = cabin.transform;
+                        SA_left.transform.position = cabin.transform.position;
+                        NewQuad(SA_left, SA_rond);
+                        SA_left.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                        SA_left.transform.localPosition += new Vector3(-1.01f, 0.72f, -0.28f);
+                        SA_left.transform.localRotation = Quaternion.Euler(new Vector3(0f, 0f, 96f));
+
+                        GameObject SA_right = new GameObject("SA_passsengerside");
+                        SA_right.transform.parent = cabin.transform;
+                        SA_right.transform.position = cabin.transform.position;
+                        NewQuad(SA_right, SA_rond);
+                        SA_right.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                        SA_right.transform.localPosition += new Vector3(1.01f, 0.72f, -0.28f);
+                        SA_right.transform.localRotation = Quaternion.Euler(new Vector3(0f, 0f, 264f));                                            
+                        Log("Ural 375D prop inducted into the GSFG!");
                         break;
                 }
             }
@@ -210,11 +243,10 @@ namespace SovietGuards{
         {
             
             if (sceneName == "MainMenu2_Scene" || sceneName == "t64_menu" || sceneName == "MainMenu2-1_Scene")
-            {
-                menuProps = true;
-                MenuProps();
-            }
-            else { menuProps = false; }            
+            {                
+                MenuProps(sceneName);
+                return;
+            }                  
             
             gameManager = GameObject.Find("_APP_GHPC_");
             if (gameManager == null) return;
@@ -222,13 +254,19 @@ namespace SovietGuards{
             StateController.RunOrDefer(GameState.GameReady, new GameStateEventHandler(Conversion), GameStatePriority.Medium);
         }
         private IEnumerator Conversion(GameState _)
-        {
-            if (menuProps == true) { yield break; }                       
-            Vehicle[] list = GameObject.FindObjectsByType<Vehicle>(FindObjectsSortMode.None);
-
+        {                              
+            Vehicle[] list = GameObject.FindObjectsByType<Vehicle>(FindObjectsSortMode.None);            
             if (guards_mat == null || guards_mat.GetTexture("_colour") == null)
             {                
                 FetchTex();
+            }
+
+            if (Trucks.Value && SA_rond == null)
+            {
+                var prefabLookups = Object.FindAnyObjectByType<UnitSpawner>().PrefabLookup;
+                AssetReference prefab = prefabLookups.GetPrefab("UAZ469");
+                Vehicle uaz = Addressables.LoadAssetAsync<GameObject>(prefab).WaitForCompletion().GetComponent<Vehicle>();
+                SA_rond = uaz.transform.Find("UAZ469_up_rig/lp_pillar004").GetComponent<SkinnedMeshRenderer>().materials[2];
             }
 
             foreach (var unit in list)
@@ -245,7 +283,7 @@ namespace SovietGuards{
                         markings_mr.material = guards_mat; //replaces tactical markings with Guard badge                       
                         markings_mr.material.SetTextureScale("_colour", newSize); //new material needs adjusting to fit mesh
                         markings_mr.material.SetTextureScale("_burnttexture", newSize);
-                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
+                        Log(unit.name + " inducted into the Guards!");
                         if (hide_nets.Value)
                         {
                             GameObject net = unit.transform.Find("---T62_rig---/HULL/TURRET/T62 turret net").gameObject;
@@ -255,7 +293,8 @@ namespace SovietGuards{
                         break;
                     case ("T64A"):   
                     case ("T64B"):                    
-                    case ("T64A74"):                    
+                    case ("T64A74"):
+                    case ("T64A79"):
                     case ("T64A81"): 
                     case ("T64A83"):
                     case ("T64A84"):
@@ -277,7 +316,7 @@ namespace SovietGuards{
                             markings2_mr.material.SetTextureScale("_colour", newSize);
                             markings2_mr.material.SetTextureScale("_burnttexture", newSize);
                         }
-                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
+                        Log(unit.name + " inducted into the Guards!");
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("T80B"):
@@ -287,7 +326,7 @@ namespace SovietGuards{
                         markings_mr.material = guards_mat;
                         markings_mr.material.SetTextureScale("_colour", newSize);
                         markings_mr.material.SetTextureScale("_burnttexture", newSize);
-                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
+                        Log(unit.name + " inducted into the Guards!");
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("BMP1_SA"):
@@ -298,7 +337,7 @@ namespace SovietGuards{
                         markings_mr.material = guards_mat;
                         markings_mr.material.SetTextureScale("_colour", newSize);
                         markings_mr.material.SetTextureScale("_burnttexture", newSize);
-                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
+                        Log(unit.name + " inducted into the Guards!");
                         if (hide_nets.Value)
                         {
                             GameObject net = unit.transform.Find("BMP1_rig/HULL/TURRET/bmp1 net turret").gameObject;
@@ -318,7 +357,7 @@ namespace SovietGuards{
                             GameObject net = unit.transform.Find("BMP2_rig/HULL/TURRET/bmp2 net turret").gameObject;
                             if (net != null) { net.SetActive(false); }
                         }
-                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
+                        Log(unit.name + " inducted into the Guards!");
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("BTR60PB_SA"):                    
@@ -329,7 +368,7 @@ namespace SovietGuards{
                         markings_mr.material = guards_mat;
                         markings_mr.material.SetTextureScale("_colour", new Vector2(1.05f, 1.05f)); //overwriting the DDR rondel requires a unique rescale
                         markings_mr.material.SetTextureScale("_burnttexture", new Vector2(1.05f, 1.05f));
-                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
+                        Log(unit.name + " inducted into the Guards!");
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("BRDM2_SA"):
@@ -345,7 +384,7 @@ namespace SovietGuards{
                         RendererMaterial markings_rm = new RendererMaterial();
                         markings_rm.Renderer = markings.GetComponent<MeshRenderer>();
                         unit.GetComponent<FlammablesManager>()._scorchRendererMaterials.Add(markings_rm);
-                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
+                        Log(unit.name + " inducted into the Guards!");
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("BTR70"): //BTR70 has no tactical symbols to overwrite, so we need to create new planes from scratch!                    
@@ -375,7 +414,7 @@ namespace SovietGuards{
                         unit.GetComponent<FlammablesManager>()._scorchRendererMaterials.Add(guard_left_rm);
                         unit.GetComponent<FlammablesManager>()._scorchRendererMaterials.Add(guard_right_rm);
 
-                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
+                        Log(unit.name + " inducted into the Guards!");
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                     case ("T64R"):
@@ -391,7 +430,36 @@ namespace SovietGuards{
                         tac_luna_mr.material.SetTextureScale("_colour", newSize);
                         tac_luna_mr.material.SetTextureScale("_burnttexture", newSize);
                         unit.transform.Find("---T64A_MESH---").gameObject.SetActive(false);
-                        if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
+                        Log(unit.name + " inducted into the Guards!");
+                        unit_go.AddComponent<AlreadyConverted>();
+                        break;
+                    case ("URAL375D_SA"):
+                        if (!Trucks.Value) { continue; }
+                        GameObject cabin = unit.transform.Find("ural375D_rig120921/lp_cabin_rear002").gameObject;
+                        GameObject SA_left = new GameObject("SA_driverside");
+                        SA_left.transform.parent = cabin.transform;
+                        SA_left.transform.position = cabin.transform.position;
+                        NewQuad(SA_left, SA_rond);
+                        SA_left.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                        SA_left.transform.localPosition += new Vector3(-1.01f, 0.72f, -0.28f);
+                        SA_left.transform.localRotation = Quaternion.Euler(new Vector3(0f, 0f, 96f));
+                        RendererMaterial SA_left_rm = new RendererMaterial();
+                        SA_left_rm.Renderer = SA_left.GetComponent<MeshRenderer>();
+
+                        GameObject SA_right = new GameObject("SA_passsengerside");
+                        SA_right.transform.parent = cabin.transform;
+                        SA_right.transform.position = cabin.transform.position;
+                        NewQuad(SA_right, SA_rond);
+                        SA_right.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                        SA_right.transform.localPosition += new Vector3(1.01f, 0.72f, -0.28f);
+                        SA_right.transform.localRotation = Quaternion.Euler(new Vector3(0f, 0f, 264f));
+                        RendererMaterial SA_right_rm = new RendererMaterial();
+                        SA_right_rm.Renderer = SA_right.GetComponent<MeshRenderer>();
+
+                        unit.GetComponent<FlammablesManager>()._scorchRendererMaterials.Add(SA_left_rm);
+                        unit.GetComponent<FlammablesManager>()._scorchRendererMaterials.Add(SA_right_rm);
+
+                        Log(unit.name + " received Soviet Army roundel!");
                         unit_go.AddComponent<AlreadyConverted>();
                         break;
                 } 
@@ -420,7 +488,7 @@ namespace SovietGuards{
                     guard.transform.localScale = new Vector3(0.023f, 0.023f, 0.023f);
                     guard.transform.localPosition += new Vector3(-0.03f, 0.13f, -0.07f);
                     guard.transform.localRotation = Quaternion.Euler(new Vector3(20f, -90f, 5f));
-                    if (!mute_logging.Value) { MelonLogger.Msg(unit.name + " inducted into the Guards!"); }
+                    Log(unit.name + " inducted into the Guards!");
                     unit_go.AddComponent<AlreadyConverted>();
                 }
             }
